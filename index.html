@@ -1,0 +1,355 @@
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Azan App</title>
+    <style>
+      :root {
+        --bg1: #fffaf0;
+        --bg2: #f8edcf;
+        --card: #fffdf8;
+        --primary: #d6d83f;
+        --accent: #e7f24e;
+        --text: #2f2a20;
+        --muted: #8a7b5d;
+        --border: #eadfca;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background:
+          radial-gradient(circle at top right, #f7d98b 0%, transparent 35%),
+          linear-gradient(135deg, var(--bg1), var(--bg2));
+        color: var(--text);
+      }
+      .container {
+        background: var(--card);
+        padding: 30px;
+        border-radius: 24px;
+        width: 400px;
+        border: 1px solid var(--border);
+        box-shadow: 0 20px 50px rgba(120, 90, 30, 0.12);
+      }
+      h2 {
+        margin: 0 0 12px;
+        font-size: 28px;
+        letter-spacing: -0.5px;
+        color: #332b1c;
+      }
+      .inputs {
+        display: grid;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      input {
+        padding: 13px 14px;
+        border-radius: 12px;
+        border: 1px solid var(--border);
+        outline: none;
+        background: #fffdf9;
+        color: var(--text);
+        font-size: 14px;
+        transition: 0.2s;
+      }
+
+      input:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 3px rgba(217, 155, 34, 0.12);
+      }
+      button {
+        padding: 13px 14px;
+        border: none;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #d99b22, #efbd45);
+        color: white;
+        font-size: 15px;
+        font-weight: bold;
+        cursor: pointer;
+        transition: 0.2s;
+        box-shadow: 0 8px 18px rgba(217, 155, 34, 0.22);
+      }
+
+      button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 22px rgba(217, 155, 34, 0.3);
+      }
+      .header {
+        margin-top: 12px;
+        padding: 10px;
+        border-radius: 12px;
+        background: #f8fafc;
+        border: 1px solid var(--border);
+        font-weight: bold;
+        text-align: center;
+      }
+      .next-prayer {
+        margin-top: 20px;
+        padding: 22px 24px;
+        border-radius: 22px;
+        background: linear-gradient(135deg, #3f392d, #5a4e39);
+        color: white;
+        box-shadow: 0 14px 30px rgba(80, 60, 25, 0.18);
+      }
+
+      .next-prayer .label {
+        font-size: 13px;
+        color: #e6d4a5;
+        margin-bottom: 10px;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+      }
+
+      .next-prayer .time {
+        font-size: 28px;
+        font-weight: bold;
+        color: #f3c75b;
+        margin-top: 0;
+      }
+      .grid {
+        margin-top: 16px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+      }
+      .card {
+        padding: 16px;
+        border-radius: 16px;
+        background: #fffdf8;
+        border: 1px solid var(--border);
+        box-shadow: 0 6px 18px rgba(100, 75, 30, 0.07);
+        transition: 0.2s;
+      }
+
+      .card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 22px rgba(100, 75, 30, 0.12);
+      }
+      .name {
+        font-size: 13px;
+        color: var(--muted);
+        font-weight: 600;
+      }
+      .time {
+        font-size: 20px;
+        font-weight: bold;
+        margin-top: 6px;
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Prayer Times</h2>
+      <div class="inputs">
+        <input type="date" id="date" />
+        <input type="text" id="city" placeholder="City" />
+        <input type="text" id="country" placeholder="Country code (e.g. GB)" />
+        <button onclick="fetchAPI()">Get Times</button>
+      </div>
+      <div id="result">
+        <div class="next-prayer">
+          <div class="label">Next Prayer</div>
+          <div class="time" id="nextPrayer"></div>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <div class="name">Fajr</div>
+            <div class="time" id="fajrTime"></div>
+          </div>
+
+          <div class="card">
+            <div class="name">Dhuhr</div>
+            <div class="time" id="dhuhrTime"></div>
+          </div>
+
+          <div class="card">
+            <div class="name">Asr</div>
+            <div class="time" id="asrTime"></div>
+          </div>
+
+          <div class="card">
+            <div class="name">Maghrib</div>
+            <div class="time" id="maghribTime"></div>
+          </div>
+
+          <div class="card">
+            <div class="name">Isha</div>
+            <div class="time" id="ishaTime"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_URL = "https://api.aladhan.com/v1";
+
+      // Today's date for the input: YYYY-MM-DD
+      const getTodayDate = () => {
+        const today = new Date();
+
+        const day = String(today.getDate()).padStart(2, "0");
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const year = today.getFullYear();
+
+        return `${year}-${month}-${day}`;
+      };
+
+      // Convert YYYY-MM-DD to DD-MM-YYYY for AlAdhan API
+      const getApiDate = (date) => {
+        const [year, month, day] = date.split("-");
+        return `${day}-${month}-${year}`;
+      };
+
+      // Show the 5 prayer times
+      const showPrayerTimes = (timings) => {
+        document.getElementById("fajrTime").textContent = timings.Fajr;
+        document.getElementById("dhuhrTime").textContent = timings.Dhuhr;
+        document.getElementById("asrTime").textContent = timings.Asr;
+        document.getElementById("maghribTime").textContent = timings.Maghrib;
+        document.getElementById("ishaTime").textContent = timings.Isha;
+      };
+
+      // Show next prayer from nextPrayerByAddress API
+      const showNextPrayer = (timings) => {
+        const nextName = Object.keys(timings)[0];
+        const nextTime = timings[nextName];
+
+        document.getElementById("nextPrayer").textContent =
+          `${nextName} - ${nextTime}`;
+      };
+
+      // =========================
+      // GET PRAYER TIMES
+      // =========================
+      const fetchAPI = async () => {
+        const date = document.getElementById("date").value;
+        const city = document.getElementById("city").value.trim();
+        const country = document.getElementById("country").value.trim();
+
+        if (!date || !city || !country) {
+          return;
+        }
+
+        const apiDate = getApiDate(date);
+
+        // API 1
+        const routeByCity = `/timingsByCity/${apiDate}?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}`;
+
+        // API 2
+        const address = `${city}, ${country}`;
+
+        const routeNextPrayer = `/nextPrayerByAddress/${apiDate}?address=${encodeURIComponent(address)}`;
+
+        try {
+          // =========================
+          // timingsByCity
+          // =========================
+          const res = await fetch(API_URL + routeByCity);
+          const data = await res.json();
+
+          console.log("Timings:", data);
+
+          if (data.code !== 200) {
+            console.log("Timings API error:", data);
+            document.getElementById("nextPrayer").textContent =
+              "Could not load prayer times";
+            return;
+          }
+
+          showPrayerTimes(data.data.timings);
+
+          // =========================
+          // nextPrayerByAddress
+          // =========================
+          const resNext = await fetch(API_URL + routeNextPrayer);
+          const dataNext = await resNext.json();
+
+          console.log("Next Prayer:", dataNext);
+
+          if (dataNext.code !== 200) {
+            console.log("Next Prayer API error:", dataNext);
+            document.getElementById("nextPrayer").textContent =
+              "Could not load next prayer";
+            return;
+          }
+
+          showNextPrayer(dataNext.data.timings);
+        } catch (error) {
+          console.log("Error:", error);
+        }
+      };
+
+      // =========================
+      // GET USER LOCATION
+      // =========================
+      const getUserLocation = () => {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const latitude = position.coords.latitude;
+            const longitude = position.coords.longitude;
+
+            console.log("Location:", latitude, longitude);
+
+            try {
+              // Reverse geocoding
+              const geoRes = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1&accept-language=en`,
+              );
+
+              const geoData = await geoRes.json();
+
+              console.log("Location data:", geoData);
+
+              const address = geoData.address || {};
+
+              // Find the real city
+              let city =
+                address.city ||
+                address.town ||
+                address.village ||
+                address.municipality ||
+                address.city_district ||
+                address.district ||
+                "";
+
+              // Remove "District" if Nominatim returns something like:
+              // "Yabrud District" -> "Yabrud"
+              city = city.replace(/\s+District$/i, "").trim();
+
+              const countryCode = (address.country_code || "").toUpperCase();
+
+              // Fill the inputs
+              document.getElementById("date").value = getTodayDate();
+              document.getElementById("city").value = city;
+              document.getElementById("country").value = countryCode;
+
+              console.log("City:", city);
+              console.log("Country:", countryCode);
+
+              // Automatically load today's prayer times
+              if (city && countryCode) {
+                await fetchAPI();
+              }
+            } catch (error) {
+              console.log("Location error:", error);
+            }
+          },
+
+          (error) => {
+            console.log("Location error:", error);
+          },
+        );
+      };
+
+      // Automatically detect location when page opens
+      getUserLocation();
+    </script>
+  </body>
+</html>
